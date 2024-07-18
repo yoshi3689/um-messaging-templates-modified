@@ -1,0 +1,31 @@
+/* restyle popup */
+.um-popup {
+	transform: translate(-50%, -50%);
+	top: 50%;
+	left: 50%;
+	margin: 0;
+	max-width: 500px;
+	width: 92%;
+}
+
+/* style a new CTA element  */
+.upgrade-message-container {
+	display: flex;
+	align-items: center;	
+	padding-bottom: 1rem;
+	justify-content: space-between;
+}
+
+/* restyle upgrade button  */
+.um-upgrade-button {
+	color: #fff;
+  background-color: var(--wp--preset--color--vivid-cyan-blue);
+  padding: 6px 10px;
+  border-radius: 4px;
+	text-decoration: none;
+}
+
+.um-upgrade-button:hover {
+	text-decoration: none;
+	color: #fff;
+}

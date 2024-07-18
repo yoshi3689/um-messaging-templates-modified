@@ -4,12 +4,10 @@
  * Used on the "Profile" page, "Messages" tab. Display single conversation.
  *
  * Changes made:
- * - Added function `user_has_role` to check if a user has a specific role.
- * - Added check to see if the user has the 'Subscriber' role as a secondary role.
- * - Added condition to blur content and show upgrade messages based on secondary role.
- * - Updated URLs and texts for upgrading subscription.
+ * - Added action hooks to handle upgrade messages and conditional classes.
  * - Removed commented-out block and delete conversation links.
- * 
+ * - Added variable $is_premium_or_admin to check if the user is a premium subscriber or an admin.
+ *
  * Caller: method Messaging_Main_API->ajax_messaging_start()
  * Parent template: conversations.php
  *
@@ -41,8 +39,8 @@ $response = UM()->Messaging_API()->api()->get_conversation_id( $message_to, $use
 // Get current user's role
 $current_user_role = UM()->roles()->get_role_name( UM()->user()->get_role() );
 
-// Check if the user is not a subscriber and not an admin
-$is_not_subscriber_or_admin = ($current_user_role !== 'Subscriber' && $current_user_role !== 'Administrator');
+// Check if the user is a premium or an admin
+$is_premium_or_admin = ($current_user_role === 'Subscriber' || $current_user_role === 'Administrator');
 
 ?>
 
@@ -52,24 +50,6 @@ $is_not_subscriber_or_admin = ($current_user_role !== 'Subscriber' && $current_u
         <a href="<?php echo esc_url( um_user_profile_url() ) ?>"><?php echo esc_html( $contact_name ) ?></a>
     </div>
     <div class="um-message-header-right">
-        <!-- Commented out block and delete conversation links -->
-        <!-- 
-        <a href="javascript:void(0);" class="um-message-blocku um-tip-e"
-             title="<?php esc_attr_e( 'Block user', 'um-messaging' ); ?>"
-             data-confirm_text="<?php esc_attr_e( 'Are you sure to block this user?', 'um-messaging' ); ?>"
-             data-other_user="<?php echo esc_attr( $message_to ); ?>"
-             data-conversation_id="<?php echo ! empty( $response['conversation_id'] ) ? esc_attr( $response['conversation_id'] ) : 'new'; ?>">
-            <i class="um-faicon-ban"></i>
-        </a>
-        <a href="javascript:void(0);" class="um-message-delconv um-tip-e"
-             title="<?php esc_attr_e( 'Delete conversation', 'um-messaging' ); ?>"
-             data-other_user="<?php echo esc_attr( $message_to ); ?>"
-             data-conversation_id="<?php echo ! empty( $response['conversation_id'] ) ? esc_attr( $response['conversation_id'] ) : 'new'; ?>"
-           <?php if ( empty( $response ) ) { ?>style="display:none;"<?php } ?>>
-            <i class="um-icon-trash-b"></i>
-        </a> 
-        -->
-
         <?php do_action( 'um_messaging_after_conversation_links', $message_to, $user_id ); ?>
 
         <a href="javascript:void(0);" class="um-message-hide um-tip-e" title="<?php esc_attr_e( 'Close chat', 'um-messaging' ); ?>">
@@ -78,10 +58,10 @@ $is_not_subscriber_or_admin = ($current_user_role !== 'Subscriber' && $current_u
     </div>
 </div>
 
-<!-- Add blurred-content class conditionally to um-message-body -->
-<div class="um-message-body um-popup-autogrow um-message-autoheight <?php echo $is_not_subscriber_or_admin ? 'blurred-content' : ''; ?>" data-message_to="<?php echo absint( $message_to ); ?>" data-simplebar>
-    <!-- Add blurred-content class conditionally to um-message-ajax -->
-    <div class="um-message-ajax <?php echo $is_not_subscriber_or_admin ? 'blurred-content' : ''; ?>"
+<!-- Add action hook for conditional classes -->
+<div class="um-message-body um-popup-autogrow um-message-autoheight <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>" data-message_to="<?php echo absint( $message_to ); ?>" data-simplebar>
+    <!-- Add action hook for conditional classes -->
+    <div class="um-message-ajax <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>"
          data-message_from="<?php echo esc_attr( $user_id ); ?>"
          data-message_to="<?php echo esc_attr( $message_to ); ?>"
          data-conversation_id="<?php echo ! empty( $response['conversation_id'] ) ? esc_attr( $response['conversation_id'] ) : 'new'; ?>"
@@ -129,57 +109,14 @@ if ( ! UM()->Messaging_API()->api()->can_message( $message_to ) ) {
     ?>
 
     <div class="um-message-footer um-popup-footer" data-limit_hit="<?php esc_attr_e( 'You have reached your limit for sending messages.', 'um-messaging' ); ?>">
-        <div class="upgrade-message-container">
-            <?php
-            $should_return = false;
-
-            // Check various conditions and set appropriate messages
-            if ( UM()->Messaging_API()->api()->limit_reached() ) {
-                echo '<span>' . esc_html__( 'You have reached your limit for sending messages.', 'um-messaging' ) . '</span>';
-                $should_return = true;
-            } elseif ( ! UM()->roles()->um_user_can( 'can_reply_pm' ) && ! empty( $response ) ) {
-                echo '<span>' . esc_html__( 'You are not allowed to reply to private messages.', 'um-messaging' ) . '</span>';
-                $should_return = true;
-            } elseif ( UM()->roles()->um_user_can( 'can_reply_pm' ) && ! empty( $response ) && ! empty( UM()->roles()->um_user_can( 'can_reply_access' ) ) ) {
-                $roles = UM()->roles()->um_user_can( 'can_reply_roles' );
-                $receiver_roles = UM()->roles()->get_all_user_roles( $message_to );
-                if ( ! empty( $roles ) && empty( array_intersect( $roles, $receiver_roles ) ) ) {
-                    echo '<span>' . esc_html__( 'You are not allowed to reply to private messages with this user.', 'um-messaging' ) . '</span>';
-                    $should_return = true;
-                }
-            } elseif ( ! UM()->roles()->um_user_can( 'can_start_pm' ) && empty( $response ) && empty( $other_message ) ) {
-                echo '<span>' . esc_html__( 'You are not allowed to start conversations.', 'um-messaging' ) . '</span>';
-                $should_return = true;
-            } elseif ( UM()->roles()->um_user_can( 'can_start_pm' ) && empty( $response ) && empty( $other_message ) && ! empty( UM()->roles()->um_user_can( 'can_start_access' ) ) ) {
-                $roles = UM()->roles()->um_user_can( 'can_start_roles' );
-                $receiver_roles = UM()->roles()->get_all_user_roles( $message_to );
-                if ( ! empty( $roles ) && empty( array_intersect( $roles, $receiver_roles ) ) ) {
-                    echo '<span>' . esc_html__( 'You are not allowed to start conversations with this user.', 'um-messaging' ) . '</span>';
-                    $should_return = true;
-                }
-            }
-
-            // Display upgrade button if necessary
-            if ( $should_return && $is_not_subscriber_or_admin ) {
-                echo '<a href="https://careservice.ca/premium-plans/" class="um-upgrade-button">' . esc_html__( 'Upgrade', 'um-messaging' ) . '</a>';
-                return;
-            }
-
-            // New condition: User can start conversation but cannot reply
-            if ( UM()->roles()->um_user_can( 'can_start_pm' ) && empty( $response ) && empty( $other_message ) && ! UM()->roles()->um_user_can( 'can_reply_pm' ) && $is_not_subscriber_or_admin ) {
-                echo '<span>' . esc_html__( 'You can send the first message but will not be able to reply with current membership level.', 'um-messaging' ) . '</span>';
-                echo '<a href="https://careservice.ca/premium-plans/" class="um-upgrade-button">' . esc_html__( 'Upgrade', 'um-messaging' ) . '</a>';
-            }
-            ?>
-        </div>
-
-        <!-- Add empty-content class conditionally to um-message-textarea -->
-        <div class="um-message-textarea <?php echo $is_not_subscriber_or_admin ? 'empty-content' : ''; ?>">
+        <?php do_action( 'um_messaging_upgrade_message', $is_premium_or_admin, $response, $message_to ); ?>
+        <!-- Add action hook for conditional classes -->
+        <div class="um-message-textarea <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>">
             <textarea id="um_message_text" name="um_message_text" class="um_message_text" data-maxchar="<?php echo absint( $limit ); ?>" placeholder="<?php esc_attr_e( 'Type your message...', 'um-messaging' ); ?>"></textarea>
         </div>
 
-        <!-- Add empty-content class conditionally to um-message-buttons -->
-        <div class="um-message-buttons <?php echo $is_not_subscriber_or_admin ? 'empty-content' : ''; ?>">
+        <!-- Add action hook for conditional classes -->
+        <div class="um-message-buttons <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>">
             <?php UM()->get_template( 'emoji.php', um_messaging_plugin, array(), true ); ?>
             <span class="um-message-limit"><?php echo absint( $limit ); ?></span>
             <a href="javascript:void(0);" class="um-message-send disabled">

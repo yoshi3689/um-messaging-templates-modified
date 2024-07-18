@@ -40,8 +40,7 @@ $response = UM()->Messaging_API()->api()->get_conversation_id( $message_to, $use
 $current_user_role = UM()->roles()->get_role_name( UM()->user()->get_role() );
 
 // Check if the user is a premium or an admin
-$is_premium_or_admin = ($current_user_role === 'Subscriber' || $current_user_role === 'Administrator');
-
+$is_premium_or_admin = (strpos($current_user_role, 'Premium') !== false || $current_user_role === 'Administrator');
 ?>
 
 <div class="um-message-header um-popup-header">

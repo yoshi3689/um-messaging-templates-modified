@@ -108,14 +108,16 @@ if ( ! UM()->Messaging_API()->api()->can_message( $message_to ) ) {
     ?>
 
     <div class="um-message-footer um-popup-footer" data-limit_hit="<?php esc_attr_e( 'You have reached your limit for sending messages.', 'um-messaging' ); ?>">
-        <?php do_action( 'um_messaging_upgrade_message', $is_premium_or_admin, $response, $message_to ); ?>
         <!-- Add action hook for conditional classes -->
-        <div class="um-message-textarea <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>">
+        <div class="upgrade-message-container">
+          <?php do_action( 'um_messaging_upgrade_message', $is_premium_or_admin, $response, $message_to ); ?>
+        </div>
+        <div class="um-message-textarea">
             <textarea id="um_message_text" name="um_message_text" class="um_message_text" data-maxchar="<?php echo absint( $limit ); ?>" placeholder="<?php esc_attr_e( 'Type your message...', 'um-messaging' ); ?>"></textarea>
         </div>
 
         <!-- Add action hook for conditional classes -->
-        <div class="um-message-buttons <?php do_action( 'um_messaging_conditional_classes', $is_premium_or_admin ); ?>">
+        <div class="um-message-buttons">
             <?php UM()->get_template( 'emoji.php', um_messaging_plugin, array(), true ); ?>
             <span class="um-message-limit"><?php echo absint( $limit ); ?></span>
             <a href="javascript:void(0);" class="um-message-send disabled">

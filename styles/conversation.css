@@ -25,7 +25,12 @@
 	text-decoration: none;
 }
 
+/* remove letter icon from all mssage buttons */
 .um-upgrade-button:hover {
 	text-decoration: none;
 	color: #fff;
 }
+
+a.um-message-btn::before, .um-message-send.disabled .um-faicon-envelope-o {
+        display: none;
+    }
